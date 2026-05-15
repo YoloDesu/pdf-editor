@@ -1,0 +1,144 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+header {
+  background-color: #333;
+  color: white;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.status-text {
+  font-style: italic;
+  color: #aaa;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  background-color: #e0e0e0;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.editor-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem;
+  background-color: #fff;
+  border-bottom: 1px solid #ddd;
+}
+
+.canvas-wrapper {
+  flex: 1;
+  overflow: auto;
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background-color: #f5f5f5;
+}
+
+.page-container {
+  position: relative;
+  max-width: 100%;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  background-color: white;
+  margin: 0 auto;
+}
+
+.page-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+
+.text-block {
+  position: absolute;
+  background-color: rgba(255, 255, 0, 0.1);
+  border: 1px dashed rgba(0, 0, 0, 0.2);
+  color: transparent;
+  resize: none;
+  overflow: hidden;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.2;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.text-block:hover {
+  background-color: rgba(255, 255, 0, 0.3);
+  border-color: rgba(0, 0, 0, 0.5);
+  cursor: text;
+}
+
+.text-block:focus, .text-block.editing {
+  background-color: white;
+  color: black;
+  border: 2px solid #007bff;
+  outline: none;
+  z-index: 10;
+}
+
+.text-block.changed:not(:focus) {
+  background-color: rgba(200, 255, 200, 0.8);
+  color: black;
+  border: 1px solid green;
+}
+
+.empty-state {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.2rem;
+  color: #666;
+  background-color: #f5f5f5;
+}

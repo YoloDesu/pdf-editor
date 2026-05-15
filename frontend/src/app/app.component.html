@@ -1,0 +1,45 @@
+<div class="app-container">
+  <header>
+    <h1>PDF Editor</h1>
+    <div class="actions">
+      <input type="file" (change)="onFileSelected($event)" accept=".pdf" [disabled]="uploading || saving">
+      <span *ngIf="uploading" class="status-text">Uploading & Analyzing...</span>
+      <button (click)="saveDocument()" [disabled]="!docId || uploading || saving" class="btn-primary">
+        {{ saving ? 'Saving...' : 'Save Changes' }}
+      </button>
+    </div>
+  </header>
+
+  <main *ngIf="currentPage" class="editor-main">
+    <div class="toolbar">
+      <button (click)="prevPage()" [disabled]="currentPageIndex === 0">Previous</button>
+      <span>Page {{ currentPageIndex + 1 }} of {{ pages.length }}</span>
+      <button (click)="nextPage()" [disabled]="currentPageIndex === pages.length - 1">Next</button>
+    </div>
+
+    <div class="canvas-wrapper">
+      <div class="page-container" [style.aspect-ratio]="currentPage.width / currentPage.height">
+        <img [src]="pageImageUrl" class="page-image" alt="PDF Page">
+        
+        <ng-container *ngFor="let block of currentPage.text_blocks">
+          <textarea 
+            class="text-block"
+            [style.left.%]="(block.bbox[0] / currentPage.width) * 100"
+            [style.top.%]="(block.bbox[1] / currentPage.height) * 100"
+            [style.width.%]="((block.bbox[2] - block.bbox[0]) / currentPage.width) * 100"
+            [style.height.%]="((block.bbox[3] - block.bbox[1]) / currentPage.height) * 100"
+            [(ngModel)]="block.editedText"
+            (focus)="block.editing = true"
+            (blur)="block.editing = false"
+            [class.editing]="block.editing"
+            [class.changed]="block.editedText !== block.text"
+          ></textarea>
+        </ng-container>
+      </div>
+    </div>
+  </main>
+
+  <div *ngIf="!currentPage && !uploading" class="empty-state">
+    <p>Please upload a PDF to start editing.</p>
+  </div>
+</div>
