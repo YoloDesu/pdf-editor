@@ -1,29 +1,32 @@
+import unittest
+
 import fitz
-import os
-import pytesseract
-from PIL import Image
 
-doc = fitz.open()
-page = doc.new_page()
-page.insert_text((50, 50), "Original Text", fontsize=12)
+from pdf_editing import TextEdit, apply_page_edits
 
-rect = fitz.Rect(50, 38, 150, 52)
-page.add_redact_annot(rect, fill=(1, 1, 1))
-page.apply_redactions()
 
-text = "Edited Text That Is Longer"
-font_size = rect.height * 0.8
+class PdfEditSmokeTests(unittest.TestCase):
+    def test_text_edit_can_be_rendered_to_pdf_bytes(self) -> None:
+        doc = fitz.open()
+        page = doc.new_page()
+        page.insert_text((50, 50), "Original Text", fontsize=12)
 
-# Test insert_textbox
-rc = page.insert_textbox(rect, text, fontsize=font_size, color=(0, 0, 0))
-print(f"insert_textbox return code: {rc}. If >= 0, it fit. If < 0, it did not fit.")
+        edit = TextEdit(
+            0,
+            (48, 36, 140, 56),
+            "Original Text",
+            "Edited Text",
+            "Helvetica",
+            12,
+            0,
+        )
+        apply_page_edits(page, [edit])
 
-# Test insert_text instead
-page.insert_text((50, 100), "Inserted with insert_text", fontsize=font_size, color=(0, 0, 0))
+        pdf_bytes = doc.tobytes()
+        self.assertGreater(len(pdf_bytes), 0)
+        self.assertIn("Edited Text", page.get_text())
+        doc.close()
 
-doc.save("backend/test_edited.pdf")
 
-try:
-    print("Tesseract Version:", pytesseract.get_tesseract_version())
-except Exception as e:
-    print("Tesseract Error:", e)
+if __name__ == "__main__":
+    unittest.main()

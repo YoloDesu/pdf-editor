@@ -1,5 +1,39 @@
-/* You can add global styles to this file, and also import other style files */
 body {
   margin: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
+
+app-root{display:block;height:100%}
+app-root .app-container,app-root .editor-main{display:flex;flex-direction:column}
+app-root .app-container{height:100vh}
+app-root header{background:#333;color:#fff;padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center}
+app-root .actions,app-root .toolbar{display:flex;align-items:center;gap:1rem}
+app-root button{padding:.5rem 1rem;cursor:pointer;border:0;border-radius:4px;background:#e0e0e0}
+app-root button:disabled{opacity:.5;cursor:not-allowed}
+app-root button.active{background:#111;color:#fff}
+app-root .btn-primary{background:#007bff}
+app-root .editor-main{flex:1;overflow:hidden}
+app-root .toolbar{justify-content:center;padding:.5rem;background:#fff;border-bottom:1px solid #ddd}
+app-root .canvas-wrapper{flex:1;overflow:auto;padding:1.5rem;display:flex;justify-content:center;align-items:flex-start;background:#f5f5f5}
+app-root .page-container{position:relative;max-width:100%;box-shadow:0 4px 12px rgba(0,0,0,.15);background:#fff}
+app-root .page-container.adding-text{cursor:crosshair}
+app-root .page-image{display:block;width:100%;pointer-events:none}
+app-root .text-frame{position:absolute}
+app-root .text-block{width:100%;height:100%;background:transparent;border:1px dashed rgba(0,0,0,.15);color:transparent;resize:none;overflow:hidden;padding:0;margin:0;box-sizing:border-box}
+app-root .move-handle,app-root .resize-handle{position:absolute;z-index:11;padding:0;opacity:0}
+app-root .move-handle{top:-1.8rem;left:0;width:1.55rem;height:1.55rem}
+app-root .move-handle::before,app-root .move-handle::after{position:absolute;inset:0;line-height:1.55rem}
+app-root .move-handle::before{content:"\2195"}
+app-root .move-handle::after{content:"\2194"}
+app-root .resize-handle{width:.55rem;height:.55rem;border:1px solid #fff;background:#007bff}
+app-root .resize-right{top:50%;right:-.35rem;transform:translateY(-50%);cursor:ew-resize}
+app-root .resize-bottom{bottom:-.35rem;left:50%;transform:translateX(-50%);cursor:ns-resize}
+app-root .resize-corner{right:-.35rem;bottom:-.35rem;cursor:nwse-resize}
+app-root .text-frame:hover .move-handle,app-root .text-frame:hover .resize-handle,app-root .text-frame:focus-within .move-handle,app-root .text-frame:focus-within .resize-handle,app-root .text-frame.moving .move-handle,app-root .text-frame.resizing .resize-handle{opacity:1}
+app-root .text-frame:hover .text-block{border-color:rgba(0,0,0,.5);cursor:text}
+app-root .text-frame.editing-original .text-block,app-root .text-block:focus{background:transparent;color:#000;border:2px solid #007bff;outline:0;z-index:10}
+app-root .text-frame.changed .text-block:not(:focus){border:1px solid #2ea043}
+app-root .text-frame.inserted .text-block:not(:focus){border-color:transparent}
+app-root .text-frame.inserted .text-block:focus,app-root .text-frame.editing-insert .text-block{color:#000}
+app-root .text-frame.editing-insert .text-block{background:transparent}
+app-root .empty-state{flex:1;display:flex;justify-content:center;align-items:center;color:#666;background:#f5f5f5}

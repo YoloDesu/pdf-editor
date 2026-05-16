@@ -5,7 +5,7 @@
       <input type="file" (change)="onFileSelected($event)" accept=".pdf" [disabled]="uploading || saving">
       <span *ngIf="uploading" class="status-text">Uploading & Analyzing...</span>
       <button (click)="saveDocument()" [disabled]="!docId || uploading || saving" class="btn-primary">
-        {{ saving ? 'Saving...' : 'Save Changes' }}
+        {{ saving ? 'Saving...' : 'Download PDF' }}
       </button>
     </div>
   </header>
@@ -14,26 +14,84 @@
     <div class="toolbar">
       <button (click)="prevPage()" [disabled]="currentPageIndex === 0">Previous</button>
       <span>Page {{ currentPageIndex + 1 }} of {{ pages.length }}</span>
+      <span *ngIf="previewing" class="status-text">Rendering preview...</span>
       <button (click)="nextPage()" [disabled]="currentPageIndex === pages.length - 1">Next</button>
+      <button type="button" (click)="toggleAddText()" [class.active]="addingText">Add Text</button>
+      <select [(ngModel)]="selectedFont" (ngModelChange)="applySelectedTextStyle()" aria-label="Font">
+        <option *ngFor="let font of commonFonts" [value]="font">{{ font }}</option>
+      </select>
+      <input type="number" min="4" max="96" [(ngModel)]="selectedFontSize" (ngModelChange)="applySelectedTextStyle()" aria-label="Font size">
+      <button type="button" (click)="toggleSelectedBold()" [class.active]="selectedBold">B</button>
+      <button type="button" (click)="toggleSelectedItalic()" [class.active]="selectedItalic">I</button>
     </div>
 
     <div class="canvas-wrapper">
-      <div class="page-container" [style.aspect-ratio]="currentPage.width / currentPage.height">
-        <img [src]="pageImageUrl" class="page-image" alt="PDF Page">
+      <div
+        class="page-container"
+        [class.adding-text]="addingText"
+        [style.aspect-ratio]="currentPage.width / currentPage.height"
+        (click)="handlePageClick($event, currentPage)"
+      >
+        <img [src]="currentPageImageUrl" class="page-image" alt="PDF Page">
         
         <ng-container *ngFor="let block of currentPage.text_blocks">
-          <textarea 
-            class="text-block"
+          <div
+            class="text-frame"
             [style.left.%]="(block.bbox[0] / currentPage.width) * 100"
             [style.top.%]="(block.bbox[1] / currentPage.height) * 100"
             [style.width.%]="((block.bbox[2] - block.bbox[0]) / currentPage.width) * 100"
             [style.height.%]="((block.bbox[3] - block.bbox[1]) / currentPage.height) * 100"
-            [(ngModel)]="block.editedText"
-            (focus)="block.editing = true"
-            (blur)="block.editing = false"
-            [class.editing]="block.editing"
-            [class.changed]="block.editedText !== block.text"
-          ></textarea>
+            [class.changed]="isChanged(block)"
+            [class.inserted]="block.inserted"
+            [class.editing-insert]="block.editing && block.inserted"
+            [class.moving]="block.moving"
+            [class.resizing]="block.resizing"
+            [class.editing-original]="block.editing && !block.inserted"
+          >
+            <button
+              type="button"
+              class="move-handle"
+              aria-label="Move text"
+              title="Move text"
+              (pointerdown)="startTextDrag($event, currentPage, block)"
+            ></button>
+            <textarea
+              class="text-block"
+              [style.font-family]="block.font"
+              [style.font-size.pt]="block.size"
+              [style.font-weight]="block.bold ? '700' : '400'"
+              [style.font-style]="block.italic ? 'italic' : 'normal'"
+              [style.background-color]="textBlockBackground(block)"
+              [attr.data-block-id]="block.id"
+              [(ngModel)]="block.editedText"
+              (ngModelChange)="queueBlockPreview(block)"
+              (focus)="focusTextBlock(block)"
+              (blur)="finishBlockEditing(currentPage, block)"
+              [class.editing]="block.editing"
+              [class.inserted]="block.inserted"
+            ></textarea>
+            <button
+              type="button"
+              class="resize-handle resize-right"
+              aria-label="Stretch text box horizontally"
+              title="Stretch horizontally"
+              (pointerdown)="startTextResize($event, currentPage, block, 'right')"
+            ></button>
+            <button
+              type="button"
+              class="resize-handle resize-bottom"
+              aria-label="Stretch text box vertically"
+              title="Stretch vertically"
+              (pointerdown)="startTextResize($event, currentPage, block, 'bottom')"
+            ></button>
+            <button
+              type="button"
+              class="resize-handle resize-corner"
+              aria-label="Stretch text box"
+              title="Stretch text box"
+              (pointerdown)="startTextResize($event, currentPage, block, 'corner')"
+            ></button>
+          </div>
         </ng-container>
       </div>
     </div>
