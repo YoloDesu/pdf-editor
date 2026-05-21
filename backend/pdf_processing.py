@@ -11,6 +11,7 @@ import pytesseract
 from color_sampling import background_color_int_for_rect
 from font_mapping import detect_pdf_font_style
 from pdf_editing import TextEdit, apply_document_edits
+from runtime_paths import bundled_tessdata_dir, bundled_tesseract_cmd
 
 OCR_DPI = 350
 PREVIEW_DPI = 150
@@ -232,8 +233,9 @@ def _prepare_ocr_image(image: Image.Image) -> Image.Image:
 
 
 def _run_tesseract_data(image: Image.Image, page_num: int) -> OcrData:
+    _configure_tesseract_runtime()
     language = os.getenv("TESSERACT_LANG", "eng")
-    config = os.getenv("TESSERACT_CONFIG", "--oem 3 --psm 6")
+    config = _tesseract_config()
     try:
         raw_data = pytesseract.image_to_data(
             image,
@@ -245,6 +247,20 @@ def _run_tesseract_data(image: Image.Image, page_num: int) -> OcrData:
         message = f"OCR failed on page {page_num}; expected Tesseract word data"
         raise RuntimeError(f"{message}: {error}") from error
     return cast(OcrData, raw_data)
+
+
+def _configure_tesseract_runtime() -> None:
+    command = bundled_tesseract_cmd()
+    if command is not None:
+        pytesseract.pytesseract.tesseract_cmd = str(command)
+
+
+def _tesseract_config() -> str:
+    config = os.getenv("TESSERACT_CONFIG", "--oem 3 --psm 6")
+    tessdata_dir = bundled_tessdata_dir()
+    if tessdata_dir is None:
+        return config
+    return f'{config} --tessdata-dir "{tessdata_dir}"'
 
 
 def _extract_ocr_words(ocr_data: OcrData) -> list[OcrWord]:

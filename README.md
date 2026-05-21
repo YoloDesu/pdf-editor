@@ -36,6 +36,31 @@ Then open two terminals from the repository root:
 
 Both scripts run in the foreground. Stop either server with `Ctrl+C`.
 
+### Self-Contained Windows Publish
+
+To create a local Windows package that does not require the end user to install
+Python, Node.js, or Tesseract, run this from the repository root on the build
+machine:
+
+```powershell
+.\scripts\publish-windows.ps1
+```
+
+The build machine still needs Python, Node.js, npm, and an installed Tesseract
+runtime so the script can package them. The script installs PyInstaller if it is
+missing, builds the Angular frontend, bundles Tesseract and `tessdata`, and
+creates:
+
+```text
+publish\PdfEditor\PdfEditor.exe
+publish\PdfEditor-windows.zip
+```
+
+Send the `publish\PdfEditor` folder or the zip to users. They can run
+`PdfEditor.exe`; the app starts a local server and opens the browser at
+`http://127.0.0.1:8000`. Runtime upload scratch files are stored inside
+`publish\PdfEditor\data`, keeping the app portable.
+
 ### Manual Backend (FastAPI)
 
 The backend handles PDF parsing, text extraction, OCR, and saving the final document.
@@ -89,15 +114,17 @@ Once both servers are running:
 4. Click on any text block on the document image to edit it inline.
 5. Choose a font, size, bold, and italic style for new or focused text.
 6. Use "Add Text" to place new text anywhere on the current page.
-7. Use each text block's "Move" handle to reposition created or edited text.
-8. Edit text and watch the page preview update without downloading.
-9. Click "Download PDF" when you are ready to export the modified file.
+7. Use each text block's arrow handle to reposition created or edited text.
+8. Drag the right, bottom, or corner handles to stretch a text box.
+9. Edit text and watch the page preview update without downloading.
+10. Click "Download PDF" when you are ready to export the modified file.
 
 ## How it Works
 
 - **Native Text:** The backend first tries to read text directly from the PDF structures.
 - **OCR Fallback:** If a page contains very little or no native text (less than 50 characters), the backend assumes it's a scanned image, rasterizes it, cleans up the image for OCR, and groups confident Tesseract words into editable line blocks.
 - **Live Preview:** While you edit, the frontend sends pending page edits to the backend, which renders a PNG preview using the same edit logic as the final PDF.
+- **Self-Contained Runtime:** The packaged Windows build serves the compiled Angular frontend directly from FastAPI and uses bundled Tesseract files for OCR.
 - **Font Matching:** Replacement edits send the detected source font, size, color, bold, and italic state so the backend can map common families like Arial, Helvetica, Calibri, Verdana, Times New Roman, Georgia, Garamond, and Courier New to compatible PDF fonts.
 - **New Text:** Added text is inserted as text drawing only. The editor overlay is transparent and does not create a visible PDF rectangle.
 - **Moving Text:** Replacement edits keep the original redaction area separate from the current placement, so moved text hides the old source text and renders at the new position.

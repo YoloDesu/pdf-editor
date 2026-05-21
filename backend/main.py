@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel
 
+from frontend_static import mount_frontend
 from pdf_editing import TextEdit
 from pdf_processing import (
     analyze_document_pages,
@@ -13,10 +14,11 @@ from pdf_processing import (
     render_original_page_png,
     render_preview_page_png,
 )
+from runtime_paths import runtime_temp_dir
 
 app = FastAPI()
-TEMP_DIR = Path("temp_pdfs")
-TEMP_DIR.mkdir(exist_ok=True)
+TEMP_DIR = runtime_temp_dir()
+TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
 app.add_middleware(
     CORSMiddleware,
@@ -135,3 +137,6 @@ def _document_path(doc_id: str) -> Path:
         detail = f"Document id {doc_id!r} must be a UUID string."
         raise HTTPException(status_code=400, detail=detail) from error
     return TEMP_DIR / f"{doc_id}.pdf"
+
+
+mount_frontend(app)

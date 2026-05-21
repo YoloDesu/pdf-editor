@@ -5,6 +5,7 @@ __pycache__/
 *.so
 .Python
 build/
+publish/
 develop-eggs/
 dist/
 downloads/
@@ -38,10 +39,12 @@ frontend/.angular/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+publish-smoke*.log
 .npm/
 
 # Application Specific
 backend/temp_pdfs/
+backend/.test_runtime/
 *_edited.pdf
 *.png
 

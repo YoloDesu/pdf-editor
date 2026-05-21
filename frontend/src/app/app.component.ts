@@ -18,7 +18,7 @@ export type { PageData } from './pdf-editor.models';
 export class AppComponent implements OnDestroy {
   private readonly http = inject(HttpClient);
 
-  readonly apiUrl = 'http://localhost:8000';
+  readonly apiUrl = window.location.port === '4200' ? 'http://localhost:8000' : '';
 
   docId: string | null = null;
   pages: PageData[] = [];
