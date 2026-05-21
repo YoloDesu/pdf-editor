@@ -129,9 +129,7 @@ def create_edited_pdf_bytes(pdf_path: Path, edits: list[TextEdit]) -> bytes:
 
 def _analyze_page(page: fitz.Page) -> dict[str, object]:
     native_blocks = _native_text_blocks(page)
-    blocks = native_blocks
-    if _needs_ocr(native_blocks):
-        blocks = _ocr_text_blocks(page)
+    blocks = _preferred_text_blocks(page, native_blocks)
     blocks = _blocks_with_background_colors(page, blocks)
 
     return {
@@ -140,6 +138,25 @@ def _analyze_page(page: fitz.Page) -> dict[str, object]:
         "height": page.rect.height,
         "text_blocks": [block.as_payload() for block in blocks],
     }
+
+
+def _preferred_text_blocks(
+    page: fitz.Page,
+    native_blocks: list[TextBlock],
+) -> list[TextBlock]:
+    if not _needs_ocr(native_blocks):
+        return native_blocks
+    return _ocr_text_blocks_or_native(page, native_blocks)
+
+
+def _ocr_text_blocks_or_native(
+    page: fitz.Page,
+    native_blocks: list[TextBlock],
+) -> list[TextBlock]:
+    try:
+        return _ocr_text_blocks(page)
+    except RuntimeError:
+        return native_blocks
 
 
 def _native_text_blocks(page: fitz.Page) -> list[TextBlock]:
@@ -243,7 +260,7 @@ def _run_tesseract_data(image: Image.Image, page_num: int) -> OcrData:
             config=config,
             output_type=pytesseract.Output.DICT,
         )
-    except pytesseract.TesseractError as error:
+    except (pytesseract.TesseractError, pytesseract.TesseractNotFoundError) as error:
         message = f"OCR failed on page {page_num}; expected Tesseract word data"
         raise RuntimeError(f"{message}: {error}") from error
     return cast(OcrData, raw_data)

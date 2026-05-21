@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 import fitz
 from PIL import Image
@@ -13,6 +14,7 @@ from pdf_editing import (
 from pdf_processing import (
     OcrData,
     TextBlock,
+    _analyze_page,
     _blocks_with_background_colors,
     _extract_ocr_words,
     _group_ocr_words_into_lines,
@@ -59,6 +61,28 @@ class PdfProcessingTests(unittest.TestCase):
 
     def test_needs_ocr_for_sparse_native_text(self) -> None:
         self.assertTrue(_needs_ocr([]))
+
+    def test_analyze_page_keeps_native_text_when_ocr_fails(self) -> None:
+        doc = fitz.open()
+        page = doc.new_page(width=120, height=80)
+        page.insert_text((10, 35), "Short", fontsize=12)
+
+        with patch("pdf_processing._ocr_text_blocks", side_effect=RuntimeError("missing OCR")):
+            analyzed = _analyze_page(page)
+
+        blocks = analyzed["text_blocks"]
+        self.assertEqual(blocks[0]["text"], "Short")
+        doc.close()
+
+    def test_analyze_page_allows_empty_pages_when_ocr_fails(self) -> None:
+        doc = fitz.open()
+        page = doc.new_page(width=120, height=80)
+
+        with patch("pdf_processing._ocr_text_blocks", side_effect=RuntimeError("missing OCR")):
+            analyzed = _analyze_page(page)
+
+        self.assertEqual(analyzed["text_blocks"], [])
+        doc.close()
 
     def test_single_line_font_size_respects_rect_width(self) -> None:
         rect = fitz.Rect(0, 0, 20, 20)

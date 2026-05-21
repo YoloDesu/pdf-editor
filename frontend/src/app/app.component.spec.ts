@@ -150,6 +150,19 @@ describe('AppComponent', () => {
 
     expect(app.textBlockBackground(block)).toBeNull();
   });
+
+  it('should select a sidebar page and refresh its preview', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    const secondPage = { ...pageWithEdit('Second', 'Second'), page_num: 1 };
+    spyOn(app, 'queuePreviewRefresh');
+    app.pages = [pageWithEdit('First', 'First'), secondPage];
+
+    app.selectPage(1);
+
+    expect(app.currentPageIndex).toBe(1);
+    expect(app.queuePreviewRefresh).toHaveBeenCalledOnceWith(0);
+  });
 });
 
 function pageWithEdit(text: string, editedText: string): PageData {

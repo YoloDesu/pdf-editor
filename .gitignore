@@ -39,6 +39,7 @@ frontend/.angular/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*-dev*.log
 publish-smoke*.log
 .npm/
 

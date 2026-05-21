@@ -1,4 +1,4 @@
-import { PageData, PagePoint, PdfRect, TextDragState, TextResizeState } from './pdf-editor.models';
+import { PageData, PagePoint, PdfRect, TextBlock, TextDragState, TextResizeEdge, TextResizeState } from './pdf-editor.models';
 
 export function pagePointFromMouseEvent(event: MouseEvent, page: PageData): PagePoint {
   const target = event.currentTarget as HTMLElement;
@@ -57,6 +57,33 @@ export function constrainedResizedBbox(bbox: PdfRect, page: PageData): PdfRect {
   const x1 = Math.max(bbox[0] + minimumWidth, Math.min(bbox[2], page.width));
   const y1 = Math.max(bbox[1] + minimumHeight, Math.min(bbox[3], page.height));
   return [bbox[0], bbox[1], x1, y1];
+}
+
+export function textDragStateFromPointer(
+  event: PointerEvent,
+  pageElement: HTMLElement,
+  page: PageData,
+  block: TextBlock
+): TextDragState {
+  return {
+    page, block, startClientX: event.clientX, startClientY: event.clientY,
+    startBbox: [...block.bbox],
+    pageBounds: pageElement.getBoundingClientRect()
+  };
+}
+
+export function textResizeStateFromPointer(
+  event: PointerEvent,
+  pageElement: HTMLElement,
+  page: PageData,
+  block: TextBlock,
+  edge: TextResizeEdge
+): TextResizeState {
+  return {
+    page, block, edge, startClientX: event.clientX, startClientY: event.clientY,
+    startBbox: [...block.bbox],
+    pageBounds: pageElement.getBoundingClientRect()
+  };
 }
 
 export function pdfRectsOverlap(first: PdfRect, second: PdfRect): boolean {

@@ -2,8 +2,10 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, OnDestroy, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { editorApiUrl } from './pdf-editor-api-url';
 import { collectPageEditPayloads, isTextBlockChanged } from './pdf-editor-edits';
-import { clampedTextOrigin, constrainedBbox, constrainedResizedBbox, draggedBbox, pagePointFromMouseEvent, resizedBbox } from './pdf-editor-geometry';
+import { clampedTextOrigin, constrainedBbox, constrainedResizedBbox, draggedBbox, pagePointFromMouseEvent, resizedBbox, textDragStateFromPointer, textResizeStateFromPointer } from './pdf-editor-geometry';
+import { editablePageFromAnalysis, insertedTextBlockFromOptions } from './pdf-editor-page-state';
 import { AnalyzedPageData, DocumentData, EditPayload, PageData, TextBlock, TextDragState, TextResizeEdge, TextResizeState, UploadResponse } from './pdf-editor.models';
 
 export type { PageData } from './pdf-editor.models';
@@ -18,7 +20,7 @@ export type { PageData } from './pdf-editor.models';
 export class AppComponent implements OnDestroy {
   private readonly http = inject(HttpClient);
 
-  readonly apiUrl = window.location.port === '4200' ? 'http://localhost:8000' : '';
+  readonly apiUrl = editorApiUrl(window.location);
 
   docId: string | null = null;
   pages: PageData[] = [];
@@ -98,6 +100,14 @@ export class AppComponent implements OnDestroy {
     }
     this.showPage(this.currentPageIndex - 1);
   }
+
+  selectPage(pageIndex: number): void {
+    if (pageIndex === this.currentPageIndex) {
+      return;
+    }
+    this.showPage(pageIndex);
+  }
+
   queuePreviewRefresh(delayMs = 250): void {
     this.clearPreviewTimer();
     this.previewTimerId = window.setTimeout(() => this.refreshPreview(), delayMs);
@@ -192,7 +202,7 @@ export class AppComponent implements OnDestroy {
     event.preventDefault();
     event.stopPropagation();
     block.moving = true;
-    this.dragState = this.newDragState(event, pageElement, page, block);
+    this.dragState = textDragStateFromPointer(event, pageElement, page, block);
     this.addDragListeners();
   }
 
@@ -205,7 +215,7 @@ export class AppComponent implements OnDestroy {
     event.preventDefault();
     event.stopPropagation();
     block.resizing = true;
-    this.resizeState = this.newResizeState(event, pageElement, page, block, edge);
+    this.resizeState = textResizeStateFromPointer(event, pageElement, page, block, edge);
     this.addResizeListeners();
   }
 
@@ -249,25 +259,7 @@ export class AppComponent implements OnDestroy {
   }
 
   private preparePageForEditing(page: AnalyzedPageData): PageData {
-    return {
-      ...page,
-      text_blocks: page.text_blocks.map((block, index) => ({
-        ...block,
-        id: this.newTextBlockId(),
-        originalBbox: [...block.bbox],
-        background_color: block.background_color ?? 16777215,
-        originalFont: block.font,
-        originalSize: block.size,
-        originalBold: block.bold,
-        originalItalic: block.italic,
-        editedText: block.text,
-        editing: false,
-        moving: false,
-        resizing: false,
-        originalIndex: index,
-        inserted: false
-      }))
-    };
+    return editablePageFromAnalysis(page, () => this.newTextBlockId());
   }
 
   private showPage(pageIndex: number): void {
@@ -303,28 +295,12 @@ export class AppComponent implements OnDestroy {
     const height = this.selectedFontSize * 1.5;
     const origin = clampedTextOrigin(page, x, y, height);
     const width = Math.min(220, page.width - origin.x);
-    return {
-      id: this.newTextBlockId(),
-      bbox: [origin.x, origin.y, origin.x + width, origin.y + height],
-      originalBbox: [origin.x, origin.y, origin.x + width, origin.y + height],
-      text: '',
-      font: this.selectedFont,
-      size: this.selectedFontSize,
-      color: 0,
-      background_color: 16777215,
-      originalFont: this.selectedFont,
-      originalSize: this.selectedFontSize,
-      bold: this.selectedBold,
-      italic: this.selectedItalic,
-      originalBold: this.selectedBold,
-      originalItalic: this.selectedItalic,
-      editedText: '',
-      editing: true,
-      moving: false,
-      resizing: false,
-      originalIndex: page.text_blocks.length,
-      inserted: true
-    };
+    return insertedTextBlockFromOptions({
+      id: this.newTextBlockId(), origin, width, height,
+      font: this.selectedFont, size: this.selectedFontSize,
+      bold: this.selectedBold, italic: this.selectedItalic,
+      originalIndex: page.text_blocks.length
+    });
   }
 
   private focusInsertedBlock(blockId: string): void {
@@ -353,38 +329,6 @@ export class AppComponent implements OnDestroy {
   private pageElementFromEvent(event: PointerEvent): HTMLElement | null {
     const target = event.currentTarget as HTMLElement;
     return target.closest('.page-container');
-  }
-
-  private newDragState(
-    event: PointerEvent,
-    pageElement: HTMLElement,
-    page: PageData,
-    block: TextBlock
-  ): TextDragState {
-    return {
-      page,
-      block,
-      startClientX: event.clientX,
-      startClientY: event.clientY,
-      startBbox: [...block.bbox],
-      pageBounds: pageElement.getBoundingClientRect()
-    };
-  }
-
-  private newResizeState(
-    event: PointerEvent,
-    pageElement: HTMLElement,
-    page: PageData,
-    block: TextBlock,
-    edge: TextResizeEdge
-  ): TextResizeState {
-    return {
-      page, block, edge,
-      startClientX: event.clientX,
-      startClientY: event.clientY,
-      startBbox: [...block.bbox],
-      pageBounds: pageElement.getBoundingClientRect()
-    };
   }
 
   private addDragListeners(): void {
