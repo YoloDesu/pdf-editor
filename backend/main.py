@@ -6,7 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel
 
+from font_catalog import available_font_names
 from frontend_static import mount_frontend
+from pdf_document import PdfDocumentError
 from pdf_editing import TextEdit
 from pdf_processing import (
     analyze_document_pages,
@@ -58,11 +60,18 @@ async def upload_pdf(file: UploadFile = File(...)) -> dict[str, str]:
     return {"doc_id": doc_id}
 
 
+@app.get("/fonts")
+async def get_fonts() -> dict[str, list[str]]:
+    return {"fonts": available_font_names()}
+
+
 @app.get("/document/{doc_id}/pages")
 async def get_document_pages(doc_id: str) -> dict[str, list[dict[str, object]]]:
     file_path = _existing_document_path(doc_id)
     try:
         return {"pages": analyze_document_pages(file_path)}
+    except PdfDocumentError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
     except RuntimeError as error:
         raise HTTPException(status_code=500, detail=str(error)) from error
 
@@ -72,6 +81,8 @@ async def get_page_image(doc_id: str, page_num: int) -> Response:
     file_path = _existing_document_path(doc_id)
     try:
         image = render_original_page_png(file_path, page_num)
+    except PdfDocumentError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
     except ValueError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     return Response(content=image, media_type="image/png")
@@ -87,6 +98,8 @@ async def preview_page_image(
     edits = _request_edits(request)
     try:
         image = render_preview_page_png(file_path, page_num, edits)
+    except PdfDocumentError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     return Response(content=image, media_type="image/png")
@@ -97,6 +110,8 @@ async def save_document(doc_id: str, request: SaveRequest) -> Response:
     file_path = _existing_document_path(doc_id)
     try:
         pdf_bytes = create_edited_pdf_bytes(file_path, _request_edits(request))
+    except PdfDocumentError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
 

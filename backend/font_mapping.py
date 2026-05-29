@@ -5,6 +5,8 @@ import re
 
 import fitz
 
+from font_catalog import font_file_for_family
+
 
 @dataclass(frozen=True)
 class PdfFontChoice:
@@ -82,7 +84,7 @@ def resolve_pdf_font(
     style = detect_pdf_font_style(source_name)
     resolved_bold = bold or style.bold
     resolved_italic = italic or style.italic
-    font_file = _font_file_for(normalized_name, resolved_bold, resolved_italic)
+    font_file = _font_file_for(source_name, normalized_name, resolved_bold, resolved_italic)
     if font_file is not None:
         name = _font_resource_name(normalized_name, resolved_bold, resolved_italic)
         return PdfFontChoice(source_name or "Helvetica", name, str(font_file))
@@ -147,10 +149,15 @@ def _styled_fitz_alias(base_name: str, bold: bool, italic: bool) -> str:
 
 
 def _font_file_for(
+    source_name: str,
     normalized_name: str,
     bold: bool,
     italic: bool,
 ) -> Path | None:
+    catalog_file = font_file_for_family(source_name, bold, italic)
+    if catalog_file is not None:
+        return catalog_file
+
     family = _font_file_family(normalized_name)
     file_names = FONT_FILE_FAMILIES.get(family)
     if file_names is None:

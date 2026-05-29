@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, OnDestroy, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { editorApiUrl } from './pdf-editor-api-url';
 import { collectPageEditPayloads, isTextBlockChanged } from './pdf-editor-edits';
 import { clampedTextOrigin, constrainedBbox, constrainedResizedBbox, draggedBbox, pagePointFromMouseEvent, resizedBbox, textDragStateFromPointer, textResizeStateFromPointer } from './pdf-editor-geometry';
 import { editablePageFromAnalysis, insertedTextBlockFromOptions } from './pdf-editor-page-state';
+import { editorFonts } from './pdf-editor-fonts';
 import { AnalyzedPageData, DocumentData, EditPayload, PageData, TextBlock, TextDragState, TextResizeEdge, TextResizeState, UploadResponse } from './pdf-editor.models';
 
 export type { PageData } from './pdf-editor.models';
@@ -36,7 +37,7 @@ export class AppComponent implements OnDestroy {
   selectedBold = false; selectedItalic = false;
   activeBlock: TextBlock | null = null;
 
-  readonly commonFonts = ['Helvetica', 'Arial', 'Calibri', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Times New Roman', 'Georgia', 'Garamond', 'Courier New', 'Comic Sans MS'];
+  readonly commonFonts = editorFonts;
 
   private previewTimerId: number | null = null;
   private previewObjectUrl: string | null = null;
@@ -84,7 +85,7 @@ export class AppComponent implements OnDestroy {
 
     this.http.get<DocumentData>(`${this.apiUrl}/document/${this.docId}/pages`).subscribe({
       next: (response) => this.loadAnalyzedPages(response.pages),
-      error: () => this.handlePageLoadError()
+      error: (error) => this.handlePageLoadError(error)
     });
   }
 
@@ -252,9 +253,9 @@ export class AppComponent implements OnDestroy {
     this.showPage(0);
   }
 
-  private handlePageLoadError(): void {
-    console.error('Failed to fetch pages');
-    window.alert('Failed to analyze document');
+  private handlePageLoadError(error: unknown): void {
+    console.error('Failed to fetch pages', error);
+    window.alert(`Failed to analyze document: ${this.errorMessage(error)}`);
     this.uploading = false;
   }
 
@@ -483,9 +484,14 @@ export class AppComponent implements OnDestroy {
   }
 
   private errorMessage(error: unknown): string {
-    if (error instanceof Error) {
-      return error.message;
+    if (!(error instanceof HttpErrorResponse)) {
+      return error instanceof Error ? error.message : 'Unexpected error';
     }
-    return 'Unexpected upload error';
+    const body = error.error;
+    const record = body as Record<string, unknown> | null;
+    if (record !== null && typeof record === 'object' && typeof record['detail'] === 'string') {
+      return record['detail'];
+    }
+    return typeof body === 'string' && body.trim() !== '' ? body : error.message;
   }
 }
